@@ -1,0 +1,344 @@
+import { useState, useEffect } from 'react';
+import { CodeEditor } from './components/CodeEditor';
+import { VariablePanel } from './components/VariablePanel';
+import { ExecutionTimeline } from './components/ExecutionTimeline';
+import { ExplanationPanel } from './components/ExplanationPanel';
+import { CourseNavigator } from './components/CourseNavigator';
+import { analyzeCode, generateCourse } from './api';
+import type { AnalyzeResponse, Course } from './types';
+
+// 示例代码
+const EXAMPLE_CODE = `# 示例：斐波那契数列计算
+def fibonacci(n):
+    """计算第n个斐波那契数"""
+    if n <= 1:
+        return n
+    
+    a, b = 0, 1
+    for i in range(2, n + 1):
+        a, b = b, a + b
+    
+    return b
+
+# 计算前10个斐波那契数
+results = []
+for i in range(10):
+    fib_num = fibonacci(i)
+    results.append(fib_num)
+
+print(f"斐波那契数列: {results}")
+
+# 示例2：简单计算
+x = 10
+y = 20
+sum_val = x + y
+product = x * y
+print(f"和: {sum_val}, 积: {product}")`;
+
+const DEFAULT_CODE = `# Python 代码示例
+def find_max(numbers):
+    """找出列表中的最大值"""
+    if not numbers:
+        return None
+    
+    max_val = numbers[0]
+    for num in numbers[1:]:
+        if num > max_val:
+            max_val = num
+    return max_val
+
+# 测试
+result = find_max([3, 1, 4, 1, 5, 9, 2, 6])
+print(f"最大值: {result}")
+`;
+
+function App() {
+  const [code, setCode] = useState(DEFAULT_CODE);
+  const [inputs, setInputs] = useState<Record<string, any>>({});
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Analysis results
+  const [analyzeResult, setAnalyzeResult] = useState<AnalyzeResponse | null>(null);
+  const [course, setCourse] = useState<Course | null>(null);
+
+  // UI state
+  const [currentLessonId, setCurrentLessonId] = useState(1);
+  const [currentStepId, setCurrentStepId] = useState(0);
+
+  // Theme state
+  const [theme, setTheme] = useState<'light' | 'dark' | 'blue' | 'green'>('light');
+  const [showSettings, setShowSettings] = useState(false);
+  const [aiProvider, setAiProvider] = useState('openai');
+  const [apiKey, setApiKey] = useState('');
+  const [model, setModel] = useState('gpt-4');
+
+  // Load theme from localStorage on mount
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme') as 'light' | 'dark' | 'blue' | 'green';
+    if (savedTheme) {
+      setTheme(savedTheme);
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    }
+
+    // Load API settings
+    const savedAiProvider = localStorage.getItem('aiProvider');
+    const savedApiKey = localStorage.getItem('aiApiKey');
+    const savedModel = localStorage.getItem('aiModel');
+    if (savedAiProvider) setAiProvider(savedAiProvider);
+    if (savedApiKey) setApiKey(savedApiKey);
+    if (savedModel) setModel(savedModel);
+  }, []);
+
+  // Change theme
+  const changeTheme = (newTheme: 'light' | 'dark' | 'blue' | 'green') => {
+    setTheme(newTheme);
+    document.documentElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem('theme', newTheme);
+  };
+
+  // Load example code
+  const loadExample = () => {
+    setCode(EXAMPLE_CODE);
+  };
+
+  // Save settings
+  const saveSettings = () => {
+    localStorage.setItem('aiProvider', aiProvider);
+    localStorage.setItem('aiApiKey', apiKey);
+    localStorage.setItem('aiModel', model);
+    setShowSettings(false);
+  };
+
+  const handleAnalyze = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await analyzeCode(code, inputs);
+      setAnalyzeResult(result);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGenerateCourse = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await generateCourse(code, inputs);
+      setCourse(result.course);
+      if (result.course.lessons.length > 0) {
+        setCurrentLessonId(result.course.lessons[0].id);
+      }
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const currentLesson = course?.lessons.find(l => l.id === currentLessonId);
+  const currentTrace = currentLesson?.trace;
+  const currentExplanation = currentLesson?.explanation || analyzeResult?.explanation;
+  const currentSteps = currentTrace?.compressed_steps || analyzeResult?.structured_trace?.compressed_steps || [];
+
+  const currentStepData = currentSteps.find(s => s.step_id === currentStepId);
+  const prevStepData = currentSteps.find(s => s.step_id === currentStepId - 1);
+
+  return (
+    <div className="app">
+      <header className="app-header">
+        <div className="header-left">
+          <h1>CodeTrace</h1>
+          <span className="header-title">代码分析工具平台</span>
+        </div>
+        <div className="header-right">
+          <button className="header-btn" title="设置" onClick={() => setShowSettings(!showSettings)}>⚙️</button>
+          <button className="header-btn" title="搜索">🔍</button>
+          <select
+            className="theme-select"
+            value={theme}
+            onChange={(e) => changeTheme(e.target.value as 'light' | 'dark' | 'blue' | 'green')}
+          >
+            <option value="light">浅色主题</option>
+            <option value="dark">深色主题</option>
+            <option value="blue">蓝色主题</option>
+            <option value="green">绿色主题</option>
+          </select>
+        </div>
+      </header>
+
+      {showSettings && (
+        <div className="settings-overlay" onClick={() => setShowSettings(false)}>
+          <div className="settings-panel" onClick={(e) => e.stopPropagation()}>
+            <div className="settings-header">
+              <h2>⚙️ AI 设置</h2>
+              <button className="settings-close" onClick={() => setShowSettings(false)}>×</button>
+            </div>
+            <div className="settings-content">
+              <div className="settings-section">
+                <h3>AI 模型配置</h3>
+                <div className="settings-field">
+                  <label>AI 提供商</label>
+                  <select
+                    className="settings-select"
+                    value={aiProvider}
+                    onChange={(e) => setAiProvider(e.target.value)}
+                  >
+                    <option value="openai">OpenAI (GPT)</option>
+                    <option value="anthropic">Anthropic (Claude)</option>
+                    <option value="azure">Azure OpenAI</option>
+                    <option value="custom">自定义 API</option>
+                  </select>
+                  <span className="settings-hint">选择你要使用的AI服务提供商</span>
+                </div>
+                <div className="settings-field">
+                  <label>API Key</label>
+                  <input
+                    type="password"
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    placeholder="sk-..."
+                  />
+                  <span className="settings-hint">从 AI 服务提供商获取的 API 密钥</span>
+                </div>
+                <div className="settings-field">
+                  <label>模型名称</label>
+                  <select
+                    className="settings-select"
+                    value={model}
+                    onChange={(e) => setModel(e.target.value)}
+                  >
+                    <optgroup label="OpenAI GPT-4">
+                      <option value="gpt-4">GPT-4</option>
+                      <option value="gpt-4-turbo">GPT-4 Turbo</option>
+                      <option value="gpt-4o">GPT-4o</option>
+                    </optgroup>
+                    <optgroup label="OpenAI GPT-3.5">
+                      <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                    </optgroup>
+                    <optgroup label="Anthropic Claude">
+                      <option value="claude-3-opus">Claude 3 Opus</option>
+                      <option value="claude-3-sonnet">Claude 3 Sonnet</option>
+                      <option value="claude-3-haiku">Claude 3 Haiku</option>
+                    </optgroup>
+                  </select>
+                  <span className="settings-hint">选择要使用的 AI 模型</span>
+                </div>
+              </div>
+              <div className="settings-actions">
+                <button className="settings-save" onClick={saveSettings}>保存设置</button>
+                <button className="settings-cancel" onClick={() => setShowSettings(false)}>取消</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="toolbar">
+        <button onClick={loadExample} className="example-btn">
+          📚 示例
+        </button>
+        <input
+          type="text"
+          placeholder="请输入代码片段..."
+          className="code-input"
+          value={code}
+          onChange={(e) => setCode(e.target.value)}
+        />
+        <button onClick={handleAnalyze} disabled={loading} className="run-btn">
+          {loading ? '运行中...' : '运行'}
+        </button>
+        <button onClick={() => setCode(DEFAULT_CODE)} className="reset-btn">
+          重置
+        </button>
+      </div>
+
+      {error && (
+        <div className="error-message">
+          {error.split('\n').map((line, i) => (
+            <div key={i}>{line}</div>
+          ))}
+        </div>
+      )}
+
+      <div className="main-content">
+        {/* Left Column: Code Editor + Results */}
+        <div className="left-column">
+          <div className="panel code-panel">
+            <div className="panel-header">
+              <div className="panel-tabs">
+                <button className="tab active">编译</button>
+                <button className="tab">控制台</button>
+                <button className="tab">依赖包</button>
+              </div>
+              <div className="panel-actions">
+                <button className="action-btn">...</button>
+              </div>
+            </div>
+            <CodeEditor
+              code={code}
+              onChange={setCode}
+              highlightedLine={currentStepData?.line}
+            />
+          </div>
+
+          <div className="panel results-panel">
+            <div className="panel-header">
+              <h3>结果展示</h3>
+              <div className="panel-actions">
+                <button className="action-btn">📊</button>
+                <button className="action-btn">📈</button>
+                <button className="action-btn">📉</button>
+                <button className="action-btn">...</button>
+              </div>
+            </div>
+            <ExecutionTimeline
+              steps={currentSteps}
+              currentStep={currentStepId}
+              onStepClick={setCurrentStepId}
+            />
+          </div>
+        </div>
+
+        {/* Right Column: Explanation + Variables */}
+        <div className="right-column">
+          <div className="panel explanation-panel">
+            <div className="panel-header">
+              <h3>执行解释</h3>
+              <div className="panel-actions">
+                <button className="action-btn">▼</button>
+              </div>
+            </div>
+            <ExplanationPanel
+              explanation={currentExplanation || {
+                summary: '点击"运行"开始分析代码',
+                step_explanations: [],
+                variable_changes: [],
+                key_insights: []
+              }}
+              currentStep={currentStepId}
+            />
+          </div>
+
+          <div className="panel variables-panel">
+            <div className="panel-header">
+              <h3>变量状态</h3>
+              <div className="panel-actions">
+                <button className="action-btn">▼</button>
+              </div>
+            </div>
+            <VariablePanel
+              variables={currentStepData?.vars_snapshot || {}}
+              prevVariables={prevStepData?.vars_snapshot}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default App;
