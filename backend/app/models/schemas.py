@@ -43,7 +43,7 @@ class CodeStructure(BaseModel):
     classes: List[ClassInfo]
     dependencies: Dict[str, List[str]]
     learning_path: List[str]
-    learning_units: List[LearningUnit]
+    learning_units: List[LearningUnit] = []
 
 class TraceStep(BaseModel):
     step_id: int

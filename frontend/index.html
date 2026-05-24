@@ -1,20 +1,130 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="zh-CN">
-
 <head>
-  <meta charset="UTF-8" />
-  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CodeTrace - 基于执行轨迹的代码学习平台</title>
-  <meta name="description" content="一个使用静态分析和运行时追踪来帮助开发者理解代码执行流程的代码学习平台" />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CodeTrace - 轻量级代码学习平台</title>
+    <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
-  <div id="root"></div>
-  <script type="module" src="/src/main.tsx"></script>
-</body>
+    <div class="app">
+        <header class="app-header">
+            <div class="header-left">
+                <h1>CodeTrace</h1>
+                <span class="header-title">轻量级代码分析平台</span>
+            </div>
+            <div class="header-right">
+                <button class="header-btn" id="settingsBtn" title="设置">⚙️</button>
+                <select class="theme-select" id="themeSelect">
+                    <option value="light">浅色主题</option>
+                    <option value="dark">深色主题</option>
+                </select>
+            </div>
+        </header>
 
+        <div class="settings-panel" id="settingsPanel" style="display: none;">
+            <div class="settings-content">
+                <h2>⚙️ AI 设置</h2>
+                <button class="settings-close" id="settingsClose">×</button>
+                <div class="settings-field">
+                    <label>AI 提供商</label>
+                    <select id="aiProvider">
+                        <option value="openai">OpenAI (GPT)</option>
+                        <option value="anthropic">Anthropic (Claude)</option>
+                    </select>
+                </div>
+                <div class="settings-field">
+                    <label>API Key</label>
+                    <input type="password" id="apiKey" placeholder="sk-...">
+                </div>
+                <div class="settings-field">
+                    <label>模型名称</label>
+                    <select id="model">
+                        <option value="gpt-4">GPT-4</option>
+                        <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                    </select>
+                </div>
+                <div class="settings-actions">
+                    <button class="settings-save" id="saveSettings">保存设置</button>
+                    <button class="settings-cancel" id="cancelSettings">取消</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="toolbar">
+            <button class="example-btn" id="loadExample">📚 示例</button>
+            <input type="text" class="code-input" id="codeInput" placeholder="请输入代码片段..." readonly>
+            <button class="run-btn" id="runBtn">运行</button>
+            <button class="reset-btn" id="resetBtn">重置</button>
+        </div>
+
+        <div class="error-message" id="errorMessage" style="display: none;"></div>
+
+        <div class="main-content">
+            <div class="left-column">
+                <div class="panel code-panel">
+                    <div class="panel-header">
+                        <div class="panel-tabs">
+                            <button class="tab active" id="codeTab">代码</button>
+                            <button class="tab" id="consoleTab">控制台</button>
+                        </div>
+                        <div class="panel-actions">
+                            <button class="action-btn">⋯</button>
+                        </div>
+                    </div>
+                    <div class="panel-body">
+                        <textarea class="code-editor" id="codeEditor" spellcheck="false"></textarea>
+                        <div class="line-numbers" id="lineNumbers"></div>
+                    </div>
+                </div>
+
+                <div class="panel results-panel">
+                    <div class="panel-header">
+                        <h3>执行时间轴</h3>
+                        <div class="panel-actions">
+                            <button class="action-btn">📊</button>
+                            <button class="action-btn">📈</button>
+                            <button class="action-btn">⋯</button>
+                        </div>
+                    </div>
+                    <div class="panel-body">
+                        <div class="timeline-container" id="timelineContainer"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="right-column">
+                <div class="panel explanation-panel">
+                    <div class="panel-header">
+                        <h3>执行解释</h3>
+                        <div class="panel-actions">
+                            <button class="action-btn">▼</button>
+                        </div>
+                    </div>
+                    <div class="panel-body">
+                        <div class="explanation-content" id="explanationContent">
+                            <p class="placeholder">点击"运行"开始分析代码</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel variables-panel">
+                    <div class="panel-header">
+                        <h3>变量状态</h3>
+                        <div class="panel-actions">
+                            <button class="action-btn">▼</button>
+                        </div>
+                    </div>
+                    <div class="panel-body">
+                        <div class="variables-content" id="variablesContent">
+                            <p class="placeholder">变量将在此显示</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
 </html>
