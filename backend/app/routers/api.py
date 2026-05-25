@@ -9,6 +9,7 @@ from app.services.analyzer import StaticAnalyzer
 from app.services.tracer import RuntimeTracer
 from app.services.structurer import TraceStructurer
 from app.services.explainer import ExplanationGenerator
+from app.services.orchestrator import CodeAnalysisOrchestrator
 
 router = APIRouter()
 
@@ -39,29 +40,14 @@ async def analyze_code(request: AnalyzeRequest):
     validate_inputs(request.inputs)
 
     try:
-        # 静态分析
-        analyzer = StaticAnalyzer()
-        code_structure = analyzer.analyze(request.code)
-        learning_units = analyzer.get_learning_path()
-        code_structure.learning_units = learning_units
-
-        # 动态执行
-        tracer = RuntimeTracer()
-        trace = tracer.trace(request.code, request.inputs)
-
-        # 轨迹压缩
-        structurer = TraceStructurer()
-        structured_trace = structurer.structure(trace)
-
-        # 生成解释
-        explainer = ExplanationGenerator()
-        explanation = explainer.generate_explanation(structured_trace, request.code)
+        orchestrator = CodeAnalysisOrchestrator()
+        result = orchestrator.analyze_full_code(request.code, request.inputs)
 
         return AnalyzeResponse(
-            code_structure=code_structure,
-            trace=trace,
-            structured_trace=structured_trace,
-            explanation=explanation
+            code_structure=result.code_structure,
+            trace=result.raw_trace,
+            structured_trace=result.structured_trace,
+            explanation=result.explanation
         )
     except HTTPException:
         raise
@@ -77,25 +63,23 @@ async def generate_course(request: CourseRequest):
     validate_inputs(request.inputs)
 
     try:
-        # 静态分析
+        # 静态分析获取学习单元
         analyzer = StaticAnalyzer()
-        code_structure = analyzer.analyze(request.code)
+        analyzer.analyze(request.code)
         learning_units = analyzer.get_learning_path()
 
-        tracer = RuntimeTracer()
-        structurer = TraceStructurer()
-        explainer = ExplanationGenerator()
+        # 使用编排服务分析各单元
+        orchestrator = CodeAnalysisOrchestrator()
 
         lessons = []
         for i, unit in enumerate(learning_units):
-            # 获取该单元的代码片段
             unit_code = unit.content
 
             try:
-                # 执行并追踪
-                trace = tracer.trace(unit_code, request.inputs)
-                structured_trace = structurer.structure(trace)
-                explanation = explainer.generate_explanation(structured_trace, unit_code)
+                # 使用编排服务分析代码单元
+                _, structured_trace, explanation = orchestrator.analyze_code_unit(
+                    unit_code, request.inputs
+                )
 
                 lesson = Lesson(
                     id=i + 1,
@@ -124,10 +108,9 @@ async def generate_course(request: CourseRequest):
                 )
             lessons.append(lesson)
 
-        total_steps = 0
-        for l in lessons:
-            if l.trace:
-                total_steps += len(l.trace.compressed_steps)
+        total_steps = sum(
+            len(l.trace.compressed_steps) for l in lessons if l.trace
+        )
 
         course = Course(
             title="代码学习课程",

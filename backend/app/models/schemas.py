@@ -60,10 +60,10 @@ class ErrorInfo(BaseModel):
     traceback: List[TraceStep]
 
 class ExecutionTrace(BaseModel):
-    steps: List[TraceStep]
-    variables: Dict[str, Any]
-    call_stack: List[str]
-    exception: Optional[ErrorInfo]
+    steps: List[TraceStep] = []
+    variables: Dict[str, Any] = {}
+    call_stack: List[str] = []
+    exception: Optional[ErrorInfo] = None
 
 class CompressedStep(BaseModel):
     step_id: int
@@ -71,14 +71,14 @@ class CompressedStep(BaseModel):
     code: str
     vars_snapshot: Dict[str, Any]
     node_type: str  # normal/loop_start/loop_end/branch/merge/call/return
-    iteration_count: Optional[int]
-    branch_taken: Optional[str]
+    iteration_count: Optional[int] = None
+    branch_taken: Optional[str] = None
 
 class StructuredTrace(BaseModel):
-    compressed_steps: List[CompressedStep]
-    execution_path: List[int]
-    key_nodes: Dict[str, List[int]]
-    path_summary: str
+    compressed_steps: List[CompressedStep] = []
+    execution_path: List[int] = []
+    key_nodes: Dict[str, List[int]] = {}
+    path_summary: str = ""
 
 class StepExplanation(BaseModel):
     step_id: int
