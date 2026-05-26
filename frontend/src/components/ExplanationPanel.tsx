@@ -31,7 +31,16 @@ export const ExplanationPanel: React.FC<ExplanationPanelProps> = ({
                 <span className="citation">{exp.citation}</span>
                 <span className="line">行 {exp.line}</span>
               </div>
-              <p className="explanation-text">{exp.explanation}</p>
+              <div className="explanation-sections">
+                <div className="explanation-section">
+                  <h5>📖 项目含义</h5>
+                  <p className="explanation-text">{exp.project_meaning}</p>
+                </div>
+                <div className="explanation-section">
+                  <h5>🧩 元素含义</h5>
+                  <p className="explanation-text">{exp.element_meaning}</p>
+                </div>
+              </div>
             </div>
           ))
         )}

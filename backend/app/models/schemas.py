@@ -83,7 +83,8 @@ class StructuredTrace(BaseModel):
 class StepExplanation(BaseModel):
     step_id: int
     line: int
-    explanation: str
+    project_meaning: str
+    element_meaning: str
     citation: str
 
 class VariableChangeExplanation(BaseModel):

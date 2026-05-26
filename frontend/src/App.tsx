@@ -68,10 +68,6 @@ function App() {
 
   // Theme state
   const [theme, setTheme] = useState<'light' | 'dark' | 'blue' | 'green'>('light');
-  const [showSettings, setShowSettings] = useState(false);
-  const [aiProvider, setAiProvider] = useState('openai');
-  const [apiKey, setApiKey] = useState('');
-  const [model, setModel] = useState('gpt-4');
 
   // Load theme from localStorage on mount
   useEffect(() => {
@@ -80,14 +76,6 @@ function App() {
       setTheme(savedTheme);
       document.documentElement.setAttribute('data-theme', savedTheme);
     }
-
-    // Load API settings
-    const savedAiProvider = localStorage.getItem('aiProvider');
-    const savedApiKey = localStorage.getItem('aiApiKey');
-    const savedModel = localStorage.getItem('aiModel');
-    if (savedAiProvider) setAiProvider(savedAiProvider);
-    if (savedApiKey) setApiKey(savedApiKey);
-    if (savedModel) setModel(savedModel);
   }, []);
 
   // Change theme
@@ -100,14 +88,6 @@ function App() {
   // Load example code
   const loadExample = () => {
     setCode(EXAMPLE_CODE);
-  };
-
-  // Save settings
-  const saveSettings = () => {
-    localStorage.setItem('aiProvider', aiProvider);
-    localStorage.setItem('aiApiKey', apiKey);
-    localStorage.setItem('aiModel', model);
-    setShowSettings(false);
   };
 
   const handleAnalyze = async () => {
@@ -155,7 +135,6 @@ function App() {
           <span className="header-title">代码分析工具平台</span>
         </div>
         <div className="header-right">
-          <button className="header-btn" title="设置" onClick={() => setShowSettings(!showSettings)}>⚙️</button>
           <button className="header-btn" title="搜索">🔍</button>
           <select
             className="theme-select"
@@ -169,73 +148,6 @@ function App() {
           </select>
         </div>
       </header>
-
-      {showSettings && (
-        <div className="settings-overlay" onClick={() => setShowSettings(false)}>
-          <div className="settings-panel" onClick={(e) => e.stopPropagation()}>
-            <div className="settings-header">
-              <h2>⚙️ AI 设置</h2>
-              <button className="settings-close" onClick={() => setShowSettings(false)}>×</button>
-            </div>
-            <div className="settings-content">
-              <div className="settings-section">
-                <h3>AI 模型配置</h3>
-                <div className="settings-field">
-                  <label>AI 提供商</label>
-                  <select
-                    className="settings-select"
-                    value={aiProvider}
-                    onChange={(e) => setAiProvider(e.target.value)}
-                  >
-                    <option value="openai">OpenAI (GPT)</option>
-                    <option value="anthropic">Anthropic (Claude)</option>
-                    <option value="azure">Azure OpenAI</option>
-                    <option value="custom">自定义 API</option>
-                  </select>
-                  <span className="settings-hint">选择你要使用的AI服务提供商</span>
-                </div>
-                <div className="settings-field">
-                  <label>API Key</label>
-                  <input
-                    type="password"
-                    value={apiKey}
-                    onChange={(e) => setApiKey(e.target.value)}
-                    placeholder="sk-..."
-                  />
-                  <span className="settings-hint">从 AI 服务提供商获取的 API 密钥</span>
-                </div>
-                <div className="settings-field">
-                  <label>模型名称</label>
-                  <select
-                    className="settings-select"
-                    value={model}
-                    onChange={(e) => setModel(e.target.value)}
-                  >
-                    <optgroup label="OpenAI GPT-4">
-                      <option value="gpt-4">GPT-4</option>
-                      <option value="gpt-4-turbo">GPT-4 Turbo</option>
-                      <option value="gpt-4o">GPT-4o</option>
-                    </optgroup>
-                    <optgroup label="OpenAI GPT-3.5">
-                      <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-                    </optgroup>
-                    <optgroup label="Anthropic Claude">
-                      <option value="claude-3-opus">Claude 3 Opus</option>
-                      <option value="claude-3-sonnet">Claude 3 Sonnet</option>
-                      <option value="claude-3-haiku">Claude 3 Haiku</option>
-                    </optgroup>
-                  </select>
-                  <span className="settings-hint">选择要使用的 AI 模型</span>
-                </div>
-              </div>
-              <div className="settings-actions">
-                <button className="settings-save" onClick={saveSettings}>保存设置</button>
-                <button className="settings-cancel" onClick={() => setShowSettings(false)}>取消</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       <div className="toolbar">
         <button onClick={loadExample} className="example-btn">
@@ -256,13 +168,7 @@ function App() {
         </button>
       </div>
 
-      {error && (
-        <div className="error-message">
-          {error.split('\n').map((line, i) => (
-            <div key={i}>{line}</div>
-          ))}
-        </div>
-      )}
+      {error && <div className="error-message">{error}</div>}
 
       <div className="main-content">
         {/* Left Column: Code Editor + Results */}

@@ -58,16 +58,7 @@ async function handleApiResponse<T>(response: Response, actionName: string): Pro
 
 export async function analyzeCode(code: string, inputs: Record<string, any> = {}): Promise<any> {
   const API_BASE = getApiBase();
-  const aiApiKey = localStorage.getItem('aiApiKey');
-  const aiProvider = localStorage.getItem('aiProvider') || 'openai';
-  const aiModel = localStorage.getItem('aiModel') || 'gpt-4';
-
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (aiApiKey) {
-    headers['X-AI-Provider'] = aiProvider;
-    headers['X-AI-Model'] = aiModel;
-    headers['X-AI-API-Key'] = aiApiKey;
-  }
 
   try {
     const response = await fetch(`${API_BASE}/analyze`, {
@@ -87,16 +78,7 @@ export async function analyzeCode(code: string, inputs: Record<string, any> = {}
 
 export async function generateCourse(code: string, inputs: Record<string, any> = {}): Promise<any> {
   const API_BASE = getApiBase();
-  const aiApiKey = localStorage.getItem('aiApiKey');
-  const aiProvider = localStorage.getItem('aiProvider') || 'openai';
-  const aiModel = localStorage.getItem('aiModel') || 'gpt-4';
-
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (aiApiKey) {
-    headers['X-AI-Provider'] = aiProvider;
-    headers['X-AI-Model'] = aiModel;
-    headers['X-AI-API-Key'] = aiApiKey;
-  }
 
   try {
     const response = await fetch(`${API_BASE}/generate-course`, {
@@ -115,16 +97,7 @@ export async function generateCourse(code: string, inputs: Record<string, any> =
 
 export async function comparePaths(code: string, inputsList: Record<string, any>[]): Promise<any> {
   const API_BASE = getApiBase();
-  const aiApiKey = localStorage.getItem('aiApiKey');
-  const aiProvider = localStorage.getItem('aiProvider') || 'openai';
-  const aiModel = localStorage.getItem('aiModel') || 'gpt-4';
-
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (aiApiKey) {
-    headers['X-AI-Provider'] = aiProvider;
-    headers['X-AI-Model'] = aiModel;
-    headers['X-AI-API-Key'] = aiApiKey;
-  }
 
   try {
     const response = await fetch(`${API_BASE}/compare-paths`, {

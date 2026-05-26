@@ -107,7 +107,6 @@ trace-based-code-learning/
 
 - Python 3.9+
 - Node.js 18+
-- OpenAI API Key（用于AI讲解生成）
 
 ### 安装
 
@@ -144,14 +143,6 @@ cd frontend
 npm run dev
 ```
 前端应用运行在 `http://localhost:5173`
-
-### 配置AI
-
-1. 点击前端界面右上角的「设置」按钮
-2. 选择AI提供商（OpenAI/Anthropic/Azure）
-3. 输入API Key
-4. 选择模型
-5. 保存设置
 
 ## 使用指南
 

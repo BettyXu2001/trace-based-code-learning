@@ -76,7 +76,8 @@ export interface StructuredTrace {
 export interface StepExplanation {
   step_id: number;
   line: number;
-  explanation: string;
+  project_meaning: string;
+  element_meaning: string;
   citation: string;
 }
 

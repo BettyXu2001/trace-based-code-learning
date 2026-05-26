@@ -494,10 +494,8 @@ body {
   color: #fca5a5;
   font-size: 14px;
   display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  white-space: pre-line;
-  line-height: 1.6;
+  align-items: center;
+  gap: 10px;
 }
 
 .error-message::before {
@@ -509,11 +507,6 @@ body {
   background: rgba(239, 68, 68, 0.3);
   border-radius: 50%;
   font-weight: 700;
-  flex-shrink: 0;
-}
-
-.error-message div {
-  flex: 1;
 }
 
 .main-content {
@@ -810,6 +803,33 @@ body {
 
 .explanation-text {
   font-size: 14px;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+.explanation-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.explanation-section {
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+}
+
+.explanation-section h5 {
+  font-size: 12px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  color: var(--primary);
+}
+
+.explanation-section p {
+  margin: 0;
+  font-size: 13px;
   line-height: 1.6;
   color: var(--text);
 }

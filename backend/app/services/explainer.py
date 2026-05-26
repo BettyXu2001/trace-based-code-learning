@@ -26,11 +26,12 @@ class ExplanationGenerator:
         for i, step in enumerate(trace.compressed_steps):
             current_vars = step.vars_snapshot.copy()
 
-            step_explanation = self.explain_step(step)
+            project_meaning, element_meaning = self.explain_step(step)
             step_explanations.append(StepExplanation(
                 step_id=step.step_id,
                 line=step.line,
-                explanation=step_explanation,
+                project_meaning=project_meaning,
+                element_meaning=element_meaning,
                 citation=f"→ Step {step.step_id}"
             ))
 
@@ -77,8 +78,8 @@ class ExplanationGenerator:
             key_insights=key_insights
         )
 
-    def explain_step(self, step: CompressedStep) -> str:
-        """解释单个执行步骤"""
+    def explain_step(self, step: CompressedStep) -> tuple[str, str]:
+        """解释单个执行步骤，返回 (项目含义, 元素含义)"""
         if step.node_type == "call":
             return self._explain_call(step)
         elif step.node_type == "branch":
@@ -90,34 +91,51 @@ class ExplanationGenerator:
         else:
             return self._explain_assignment(step)
 
-    def _explain_assignment(self, step: CompressedStep) -> str:
+    def _explain_assignment(self, step: CompressedStep) -> tuple[str, str]:
         """解释赋值语句"""
         code = step.code.strip()
         if '=' in code and '==' not in code:
             var_part = code.split('=')[0].strip()
             val_part = code.split('=')[1].strip()
-            return f"将变量 {var_part} 设置为 {self._format_value(step.vars_snapshot.get(var_part, val_part))}"
-        return f"执行赋值操作: {code}"
+            val_str = self._format_value(step.vars_snapshot.get(var_part, val_part))
+            project_meaning = f"设置变量 {var_part} 的值，这一步是程序状态更新的关键步骤"
+            element_meaning = f"使用赋值操作符 = 将 {var_part} 设置为 {val_str}，赋值操作用于给变量赋予新值"
+            return project_meaning, element_meaning
+        project_meaning = f"执行赋值操作，更新程序状态"
+        element_meaning = f"执行代码: {code}，这是一个变量赋值或状态更新操作"
+        return project_meaning, element_meaning
 
-    def _explain_call(self, step: CompressedStep) -> str:
+    def _explain_call(self, step: CompressedStep) -> tuple[str, str]:
         """解释函数调用"""
-        return f"调用函数"
+        project_meaning = f"调用函数，这是代码模块化复用的体现"
+        element_meaning = f"执行函数调用，将控制权转移到被调用函数"
+        return project_meaning, element_meaning
 
-    def _explain_branch_step(self, step: CompressedStep) -> str:
+    def _explain_branch_step(self, step: CompressedStep) -> tuple[str, str]:
         """解释分支步骤"""
-        return f"条件判断: {step.code}"
+        project_meaning = f"进行条件判断，根据不同情况执行不同的代码路径"
+        element_meaning = f"评估条件表达式: {step.code}，条件判断用于控制程序流程"
+        return project_meaning, element_meaning
 
-    def _explain_loop(self, step: CompressedStep) -> str:
+    def _explain_loop(self, step: CompressedStep) -> tuple[str, str]:
         """解释循环语句"""
         if step.node_type == "loop_start" and step.iteration_count:
-            return f"循环开始，执行 {step.iteration_count} 次"
+            project_meaning = f"开始循环执行，用于重复处理相同逻辑"
+            element_meaning = f"循环开始，将执行 {step.iteration_count} 次迭代，循环用于重复执行代码块"
+            return project_meaning, element_meaning
         elif step.node_type == "loop_end":
-            return f"循环结束"
-        return f"循环迭代: {step.code}"
+            project_meaning = f"结束本次循环，完成一次迭代"
+            element_meaning = f"循环结束，返回循环开始处或继续执行后续代码"
+            return project_meaning, element_meaning
+        project_meaning = f"执行循环迭代"
+        element_meaning = f"循环迭代: {step.code}，每次循环执行的代码"
+        return project_meaning, element_meaning
 
-    def _explain_return(self, step: CompressedStep) -> str:
+    def _explain_return(self, step: CompressedStep) -> tuple[str, str]:
         """解释返回语句"""
-        return f"返回结果: {self._format_value(step.vars_snapshot)}"
+        project_meaning = f"函数执行完成，返回结果给调用者"
+        element_meaning = f"返回语句，将结果 {self._format_value(step.vars_snapshot)} 返回给调用者，结束当前函数"
+        return project_meaning, element_meaning
 
     def explain_variable_change(
         self, var_name: str, old_val: Any, new_val: Any, context: str
