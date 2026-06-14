@@ -3,8 +3,7 @@ import { CodeEditor } from './components/CodeEditor';
 import { VariablePanel } from './components/VariablePanel';
 import { ExecutionTimeline } from './components/ExecutionTimeline';
 import { ExplanationPanel } from './components/ExplanationPanel';
-import { CourseNavigator } from './components/CourseNavigator';
-import { analyzeCode, generateCourse } from './api';
+import { analyzeCode } from './api';
 import type { AnalyzeResponse, Course } from './types';
 
 // 示例代码
@@ -54,16 +53,15 @@ print(f"最大值: {result}")
 
 function App() {
   const [code, setCode] = useState(DEFAULT_CODE);
-  const [inputs, setInputs] = useState<Record<string, any>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Analysis results
   const [analyzeResult, setAnalyzeResult] = useState<AnalyzeResponse | null>(null);
-  const [course, setCourse] = useState<Course | null>(null);
+  const [course] = useState<Course | null>(null);
 
   // UI state
-  const [currentLessonId, setCurrentLessonId] = useState(1);
+  const [currentLessonId] = useState(1);
   const [currentStepId, setCurrentStepId] = useState(0);
 
   // Theme state
@@ -94,24 +92,8 @@ function App() {
     setLoading(true);
     setError(null);
     try {
-      const result = await analyzeCode(code, inputs);
+      const result = await analyzeCode(code, {});
       setAnalyzeResult(result);
-    } catch (e: any) {
-      setError(e.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleGenerateCourse = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await generateCourse(code, inputs);
-      setCourse(result.course);
-      if (result.course.lessons.length > 0) {
-        setCurrentLessonId(result.course.lessons[0].id);
-      }
     } catch (e: any) {
       setError(e.message);
     } finally {

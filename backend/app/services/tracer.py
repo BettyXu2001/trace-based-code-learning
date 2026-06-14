@@ -1,10 +1,15 @@
 import sys
+import re
 import builtins
 import threading
 from typing import Any, Optional, List, Dict
 from io import StringIO
 
 from app.models.schemas import ExecutionTrace, TraceStep, ErrorInfo
+
+
+class SecurityError(Exception):
+    pass
 
 
 class TimeoutError(Exception):
@@ -69,17 +74,24 @@ class SecurityRestrictedbuiltins:
     _blocked_attrs = {'__import__', '__builtins__', '__class__', '__subclasses__',
                       '__globals__', '__code__', '__closure__', '__func__'}
 
-    def __getitem__(self, name: str):
-        if name in self._allowed:
-            return self._allowed[name]
-        raise AttributeError(f"'{name}' is not allowed")
-
-    def __getattr__(self, name: str):
-        if name in self._allowed:
-            return self._allowed[name]
+    def _validate_access(self, name: str) -> Any:
+        """统一的安全检查逻辑"""
+        if name in self._blocked_attrs:
+            raise AttributeError(f"'{name}' is not allowed for security reasons")
+        
         if name.startswith('_'):
             raise AttributeError(f"'{name}' is not allowed")
+        
+        if name in self._allowed:
+            return self._allowed[name]
+        
         raise AttributeError(f"'{name}' is not allowed")
+
+    def __getitem__(self, name: str):
+        return self._validate_access(name)
+
+    def __getattr__(self, name: str):
+        return self._validate_access(name)
 
 
 class RuntimeTracer:
@@ -93,6 +105,56 @@ class RuntimeTracer:
         self._old_trace_func = None
         self._timeout_flag = False
         self._source_lines: Dict[int, str] = {}  # Store source lines by line number
+        self._restricted_builtins = SecurityRestrictedbuiltins()
+        self._blocked_attrs = SecurityRestrictedbuiltins._blocked_attrs.copy()
+
+    def _pre_execution_check(self, code: str) -> None:
+        """执行前的静态安全检查"""
+        dangerous_patterns = [
+            r'__import__',
+            r'__builtins__',
+            r'__class__\.__subclasses__',
+            r'__globals__',
+            r'eval\s*\(',
+            r'exec\s*\(',
+            r'compile\s*\(',
+        ]
+        
+        for pattern in dangerous_patterns:
+            if re.search(pattern, code):
+                raise SecurityError(f"Potentially dangerous code detected: {pattern}")
+
+    def _is_safe_value(self, value: Any) -> bool:
+        """检查值是否安全"""
+        if value is None or isinstance(value, (int, float, str, bool)):
+            return True
+        
+        if isinstance(value, (list, tuple)):
+            return all(self._is_safe_value(item) for item in value)
+        
+        if isinstance(value, dict):
+            return all(
+                isinstance(k, str) and not k.startswith('_') and self._is_safe_value(v)
+                for k, v in value.items()
+            )
+        
+        return False
+
+    def _build_safe_scope(self, inputs: dict) -> dict:
+        """构建安全的执行作用域"""
+        scope = {
+            '__builtins__': self._restricted_builtins,
+        }
+        
+        if inputs:
+            for key, value in inputs.items():
+                if key.startswith('_') or key in self._blocked_attrs:
+                    continue
+                    
+                if self._is_safe_value(value):
+                    scope[key] = value
+        
+        return scope
 
     def trace(self, code: str, inputs: dict) -> ExecutionTrace:
         """Execute code with inputs and return trace"""
@@ -102,6 +164,16 @@ class RuntimeTracer:
         self._vars_before_line = self._current_vars.copy()
         self._current_frame = None
         self._timeout_flag = False
+
+        try:
+            self._pre_execution_check(code)
+        except SecurityError as e:
+            self._trace.exception = ErrorInfo(
+                type="SecurityError",
+                message=str(e),
+                traceback=[]
+            )
+            return self._trace
 
         # Pre-load source lines for secure line lookup
         self._source_lines = {}
@@ -117,12 +189,7 @@ class RuntimeTracer:
         try:
             sys.settrace(self._trace_func)
 
-            restricted_builtins = SecurityRestrictedbuiltins()
-
-            scope = {
-                '__builtins__': restricted_builtins,
-                **inputs
-            }
+            scope = self._build_safe_scope(inputs)
 
             old_stdout = sys.stdout
             old_stderr = sys.stderr
